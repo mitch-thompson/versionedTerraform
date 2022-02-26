@@ -18,6 +18,21 @@ const (
 func main() {
 	homeDir, _ := os.UserHomeDir()
 	configDirString := homeDir + shortConfigDirString
+
+	_, err := os.Stat(configDirString)
+	if os.IsNotExist(err) {
+		err = versionedTerraform.CreateConfig(configDirString, configFileLocation)
+	}
+
+	_, err = os.Stat(configDirString + "/" + configFileLocation)
+	if os.IsNotExist(err) {
+		err = versionedTerraform.CreateConfig(configDirString, configFileLocation)
+	}
+
+	if err != nil {
+		fmt.Printf("Unable to create config directory: %v", err)
+	}
+
 	configDir := os.DirFS(configDirString)
 	workingDir := os.DirFS(pwd)
 	var versionsFromConfig []versionedTerraform.SemVersion
@@ -25,16 +40,22 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 
+	versionsFromConfig, err = versionedTerraform.LoadVersionsFromConfig(configDir, configFileLocation)
+
+	if err != nil {
+		fmt.Printf("Unable to read config: %v", err)
+		os.Exit(1)
+	}
+
 	needsUpdate, err := versionedTerraform.NeedToUpdateAvailableVersions(configDir, configFileLocation)
+	if os.ErrNotExist == err {
+		fmt.Println("Unable to update version: %v", err)
+	}
+
 	if needsUpdate {
 		fileHandle, _ := os.OpenFile(configDirString+"/"+configFileLocation, os.O_RDWR, 0666)
 		defer fileHandle.Close()
 		versionedTerraform.UpdateConfig(*fileHandle)
-	}
-	versionsFromConfig, err = versionedTerraform.LoadVersionsFromConfig(configDir, configFileLocation)
-	if err != nil {
-		fmt.Printf("Unable to read config: %v", err)
-		os.Exit(1)
 	}
 
 	installedVersions, err := versionedTerraform.LoadInstalledVersions(configDir)

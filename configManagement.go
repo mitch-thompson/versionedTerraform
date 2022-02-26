@@ -109,3 +109,17 @@ func UpdateConfig(File os.File) error {
 	File.Write(lineToByte)
 	return nil
 }
+
+func CreateConfig(directory string, configFile string) error {
+	configFileName := directory + "/" + configFile
+	err := os.MkdirAll(directory, 0755)
+	if err != nil {
+		return err
+	}
+
+	fileHandler, err := os.Create(configFileName)
+	defer fileHandler.Close()
+
+	err = UpdateConfig(*fileHandler)
+	return err
+}
