@@ -30,7 +30,6 @@ type Version struct {
 const (
 	hashicorpUrl             = "https://releases.hashicorp.com/terraform/"
 	terraformPrefix          = "terraform_"
-	fileSuffix               = "_linux_amd64.zip"
 	versionedTerraformFolder = "/.versionedTerraform"
 )
 
