@@ -8,8 +8,10 @@ import (
 const (
 	//todo include others if needed
 	//todo add comparison i.e. >= 0.11.10, < 0.12.0
-	latestRelease = ">="
-	latestPatch   = "~>"
+	latestRelease      = ">="
+	latestPatch        = "~>"
+	versionLessOrEqual = "<="
+	versionLessThan    = "<"
 )
 
 type SemVersion struct {

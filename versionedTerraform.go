@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -41,6 +42,29 @@ func (v *Version) getLatestMajorRelease() {
 			release.minorVersion == v.Version.minorVersion &&
 			release.patchVersion >= v.Version.patchVersion {
 			v.Version = release
+		}
+	}
+}
+
+//getGreatestRelease() returns less than release
+func (v *Version) getOneLessRelease() {
+	var vSlice []Version
+
+	for _, release := range v.availableVersions {
+		_v := Version{
+			Version:           release,
+			availableVersions: v.availableVersions,
+			installedVersions: v.installedVersions,
+		}
+
+		if isVersionGreater(*v, _v) {
+			vSlice = append(vSlice, _v)
+		}
+	}
+
+	for i, ver := range vSlice {
+		if isVersionGreater(ver, *v) || i == 0 {
+			*v = ver
 		}
 	}
 }
@@ -130,6 +154,39 @@ func NewVersion(_version string, _vList []string) *Version {
 		v.availableVersions = append(v.availableVersions, *NewSemVersion(release))
 	}
 
+	hasMultiVersions, _ := regexp.MatchString("\\d+,", v.Version.ToString())
+
+	if hasMultiVersions {
+		releases := strings.Split(v.Version.ToString(), ",")
+		for iteration, _release := range releases {
+			_v := new(Version)
+			_v.availableVersions = v.availableVersions
+			switch {
+			case strings.Contains(_release, latestRelease):
+				release := strings.Split(_release, latestRelease)[1]
+				_v.Version = *NewSemVersion(release)
+				_v.getLatestRelease()
+			case strings.Contains(_release, latestPatch):
+				release := strings.Split(_release, latestPatch)[1]
+				_v.Version = *NewSemVersion(release)
+				_v.getLatestMajorRelease()
+			case strings.Contains(_release, versionLessOrEqual):
+				release := strings.Split(_release, versionLessOrEqual)[1]
+				_v.Version = *NewSemVersion(release)
+			case strings.Contains(_release, versionLessThan):
+				release := strings.Split(_release, versionLessThan)[1]
+				_v.Version = *NewSemVersion(release)
+				_v.getOneLessRelease()
+			}
+
+			if isVersionGreater(*_v, *v) || iteration == 0 {
+				v = _v
+			}
+		}
+
+		return v
+	}
+
 	switch {
 	case strings.Contains(v.Version.ToString(), latestRelease):
 		release := strings.Split(v.Version.ToString(), latestRelease)[1]
@@ -139,6 +196,13 @@ func NewVersion(_version string, _vList []string) *Version {
 		release := strings.Split(v.Version.ToString(), latestPatch)[1]
 		v.Version = *NewSemVersion(release)
 		v.getLatestMajorRelease()
+	case strings.Contains(v.Version.ToString(), versionLessOrEqual):
+		release := strings.Split(v.Version.ToString(), versionLessOrEqual)[1]
+		v.Version = *NewSemVersion(release)
+	case strings.Contains(v.Version.ToString(), versionLessThan):
+		release := strings.Split(v.Version.ToString(), versionLessThan)[1]
+		v.Version = *NewSemVersion(release)
+		v.getOneLessRelease()
 	}
 
 	return v
@@ -190,4 +254,30 @@ func removeSpacesVersion(v string) string {
 //VersionToString returns string of a Version
 func (v *Version) VersionToString() string {
 	return v.Version.ToString()
+}
+
+//versionCompare returns true if v1 is greater than v2
+func isVersionGreater(v1 Version, v2 Version) bool {
+	if v1.Version.majorVersion != v2.Version.majorVersion {
+		if v1.Version.majorVersion > v2.Version.majorVersion {
+			return true
+		}
+		return false
+	}
+
+	if v1.Version.minorVersion != v2.Version.minorVersion {
+		if v1.Version.minorVersion > v2.Version.minorVersion {
+			return true
+		}
+		return false
+	}
+
+	if v1.Version.patchVersion != v2.Version.patchVersion {
+		if v1.Version.patchVersion > v2.Version.patchVersion {
+			return true
+		}
+		return false
+	}
+
+	return false
 }

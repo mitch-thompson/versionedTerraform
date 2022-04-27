@@ -19,6 +19,9 @@ func testVersionList() []string {
 		"1.1.1",
 		"1.0.12",
 		"1.0.1",
+		"0.14.0",
+		"0.13.1",
+		"0.13.0",
 		"0.12.31",
 		"0.12.30",
 		"0.11.15",
@@ -39,6 +42,11 @@ func TestGetVersion(t *testing.T) {
 		{testVersionList(), ">= 0.11.15", "1.1.11"},
 		{testVersionList(), ">= 0.12.0", "1.1.11"},
 		{testVersionList(), "~> 0.12", "0.12.31"},
+		{testVersionList(), "< 0.12", "0.11.15"},
+		{testVersionList(), "<= 0.12.31", "0.12.31"},
+		{testVersionList(), "~> 0.12.0, < 0.13", "0.12.31"},
+		{testVersionList(), "~> 0.12.0, < 0.14", "0.13.1"},
+		{testVersionList(), "~> 0.12.0, <= 0.14.0", "0.14.0"},
 	}
 
 	for _, c := range cases {
@@ -69,6 +77,59 @@ func TestRemoveSpacesVersion(t *testing.T) {
 			got := removeSpacesVersion(c.tesValue)
 			if got != c.want {
 				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestIsVersionGreater(t *testing.T) {
+	cases := []struct {
+		testName                   string
+		testValueOne, testValueTwo Version
+		want                       bool
+	}{
+		{"equal versions",
+			*NewVersion("0.12.10", testVersionList()),
+			*NewVersion("0.12.10", testVersionList()),
+			false,
+		},
+		{"major greater versions",
+			*NewVersion("1.12.10", testVersionList()),
+			*NewVersion("0.12.10", testVersionList()),
+			true,
+		},
+		{"major less versions",
+			*NewVersion("0.12.10", testVersionList()),
+			*NewVersion("1.12.10", testVersionList()),
+			false,
+		},
+		{"minor greater versions",
+			*NewVersion("0.13.10", testVersionList()),
+			*NewVersion("0.12.10", testVersionList()),
+			true,
+		},
+		{"minor less  versions",
+			*NewVersion("0.12.10", testVersionList()),
+			*NewVersion("0.13.10", testVersionList()),
+			false,
+		},
+		{"patch greater versions",
+			*NewVersion("0.12.11", testVersionList()),
+			*NewVersion("0.12.10", testVersionList()),
+			true,
+		},
+		{"patch less versions",
+			*NewVersion("0.12.10", testVersionList()),
+			*NewVersion("0.12.11", testVersionList()),
+			false,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run("test isVersionGreater: "+c.testName, func(t *testing.T) {
+			got := isVersionGreater(c.testValueOne, c.testValueTwo)
+			if got != c.want {
+				t.Errorf("Got %t, want %t", got, c.want)
 			}
 		})
 	}

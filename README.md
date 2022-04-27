@@ -18,5 +18,3 @@ All arguments are passed through to terraform
 `versionedTerraform version` will display the terraform version executed in a folder
 
 ## Known Issues
-Currently, does not support semantic versioning between values<br>
-i.e. `required_version = "~> 0.14", "< 0.14.3"`
