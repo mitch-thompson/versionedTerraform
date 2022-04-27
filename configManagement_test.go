@@ -23,26 +23,26 @@ func TestUpdateAvailableVersions(t *testing.T) {
 	}
 
 	t.Run("Test success last update time", func(t *testing.T) {
-		want := true
+		want := false
 		got, err := NeedToUpdateAvailableVersions(fs, "successConfig.conf")
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		if got != want {
-			t.Errorf("updateAvailableVersions had incorrect output expected %v got %v", got, want)
+			t.Errorf("updateAvailableVersions had incorrect output expected %v got %v", want, got)
 		}
 	})
 
 	t.Run("Test failed last update time", func(t *testing.T) {
-		want := false
+		want := true
 		got, err := NeedToUpdateAvailableVersions(fs, "failConfig.conf")
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		if got != want {
-			t.Errorf("updateAvailableVersions had incorrect output expected %v got %v", got, want)
+			t.Errorf("updateAvailableVersions had incorrect output expected %v got %v", want, got)
 		}
 	})
 }
@@ -96,6 +96,9 @@ func TestInstalledVersions(t *testing.T) {
 		"terraform_1.1.9":   {Data: []byte("")},
 		"terraform_1.1.10":  {Data: []byte("")},
 		"terraform_1.1.11":  {Data: []byte("")},
+		"terraform_0.14.0":  {Data: []byte("")},
+		"terraform_0.13.1":  {Data: []byte("")},
+		"terraform_0.13.0":  {Data: []byte("")},
 	}
 
 	t.Run("Test installed versions", func(t *testing.T) {

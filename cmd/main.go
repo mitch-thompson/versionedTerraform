@@ -43,13 +43,13 @@ func main() {
 	versionsFromConfig, err = versionedTerraform.LoadVersionsFromConfig(configDir, configFileLocation)
 
 	if err != nil {
-		fmt.Printf("Unable to read config: %v", err)
+		fmt.Printf("Unable to read config: %v\n", err)
 		os.Exit(1)
 	}
 
 	needsUpdate, err := versionedTerraform.NeedToUpdateAvailableVersions(configDir, configFileLocation)
 	if os.ErrNotExist == err {
-		fmt.Println("Unable to update version: %v", err)
+		fmt.Printf("Unable to update version: %v\n", err)
 	}
 
 	if needsUpdate {
