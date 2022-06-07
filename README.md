@@ -1,4 +1,4 @@
-#Versioned Terraform
+# Versioned Terraform
 A wrapper for terraform to detect the expected version of terraform, 
 download, and execute that version
 
