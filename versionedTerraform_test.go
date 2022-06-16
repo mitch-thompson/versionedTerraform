@@ -6,6 +6,7 @@ import (
 
 func testVersionList() []string {
 	return []string{
+		"1.2.23-alpha",
 		"1.1.11",
 		"1.1.10",
 		"1.1.9",

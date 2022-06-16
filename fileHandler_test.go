@@ -5,9 +5,8 @@ import (
 	"testing/fstest"
 )
 
-func TestFileHandler(t *testing.T) {
-	const (
-		firstFile = `
+const (
+	firstFile = `
 resource "aws_mq_broker" "sample" {
  depends_on = [aws_security_group.mq]
  broker_name = var.name
@@ -21,13 +20,14 @@ resource "aws_mq_broker" "sample" {
  subnet_ids = ["10.0.0.0/24", "10.0.1.0/24"]
 }
 `
-		secondFile = `
+	secondFile = `
 terraform {
  required_version = "~> 0.12.4"
 }
 `
-	)
+)
 
+func TestFileHandler(t *testing.T) {
 	want := NewVersion("0.12.31", testVersionList())
 
 	fs := fstest.MapFS{
@@ -35,7 +35,25 @@ terraform {
 		"versions.tf": {Data: []byte(secondFile)},
 	}
 
-	version, err := GetVersionFromFile(fs, testVersionList())
+	version, err := GetVersionFromFile(fs, testVersionList(), true)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := *version
+
+	if got.Version != want.Version {
+		t.Errorf("Expected %v, got %v", want.Version, got.Version)
+	}
+}
+
+func TestEmptyTerraformVersion(t *testing.T) {
+	want := NewVersion("1.1.11", testVersionList())
+
+	fs := fstest.MapFS{"main.tf": {Data: []byte(firstFile)}}
+
+	version, err := GetVersionFromFile(fs, testVersionList(), true)
 
 	if err != nil {
 		t.Fatal(err)

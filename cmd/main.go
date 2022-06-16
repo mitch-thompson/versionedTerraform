@@ -15,6 +15,8 @@ const (
 	terraformPrefix      = "/terraform_"
 )
 
+var needsStable = true
+
 func main() {
 	homeDir, _ := os.UserHomeDir()
 	configDirString := homeDir + shortConfigDirString
@@ -69,7 +71,12 @@ func main() {
 		vSlice = append(vSlice, v.ToString())
 	}
 
-	ver, err := versionedTerraform.GetVersionFromFile(workingDir, vSlice)
+	needsStable, err = versionedTerraform.ConfigRequiresStable(configDir, configFileLocation)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to open config file, defaulting to stable versions of terraform only")
+	}
+
+	ver, err := versionedTerraform.GetVersionFromFile(workingDir, vSlice, needsStable)
 	if err != nil {
 		fmt.Printf("Unable to retrieve terraform version from files: %v", err)
 	}

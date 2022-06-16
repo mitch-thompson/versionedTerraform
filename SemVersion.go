@@ -16,6 +16,7 @@ const (
 
 type SemVersion struct {
 	version      string
+	isStable     bool
 	majorVersion int
 	minorVersion int
 	patchVersion int
@@ -29,6 +30,7 @@ type SemVersionInterface interface {
 
 func NewSemVersion(v string) *SemVersion {
 	s := new(SemVersion)
+	s.isStable = true
 	s.version = removeSpacesVersion(v)
 
 	s.setMajorVersion()
@@ -52,13 +54,18 @@ func (s *SemVersion) setMinorVersion() {
 
 func (s *SemVersion) setPatchVersion() {
 	version := s.version
+	var err error
 	patchStringSlice := strings.Split(version, ".")
 	if len(patchStringSlice) < 3 {
 		s.patchVersion = 0
 		return
 	}
-	s.patchVersion, _ = strconv.Atoi(patchStringSlice[2])
-
+	s.patchVersion, err = strconv.Atoi(patchStringSlice[2])
+	if err != nil {
+		s.isStable = false
+		patchStringSlice = strings.Split(patchStringSlice[2], "-")
+		s.patchVersion, _ = strconv.Atoi(patchStringSlice[0])
+	}
 }
 
 func (s *SemVersion) ToString() string {

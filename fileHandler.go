@@ -7,9 +7,13 @@ import (
 	"strings"
 )
 
+var needsStable bool
+
 //todo this should be (Version) GetVers...
-func GetVersionFromFile(fileSystem fs.FS, versionList []string) (*Version, error) {
+func GetVersionFromFile(fileSystem fs.FS, versionList []string, needsStableValue bool) (*Version, error) {
+	needsStable = needsStableValue
 	var versionFinal Version
+	versionFinal = *NewVersion(">= 0.0.0", versionList)
 	dir, err := fs.ReadDir(fileSystem, ".")
 	if err != nil {
 		return &versionFinal, err

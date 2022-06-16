@@ -40,7 +40,8 @@ func (v *Version) getLatestMajorRelease() {
 	for _, release := range v.availableVersions {
 		if release.majorVersion == v.Version.majorVersion &&
 			release.minorVersion == v.Version.minorVersion &&
-			release.patchVersion >= v.Version.patchVersion {
+			release.patchVersion >= v.Version.patchVersion &&
+			(v.Version.isStable || !needsStable) {
 			v.Version = release
 		}
 	}
@@ -73,16 +74,19 @@ func (v *Version) getOneLessRelease() {
 func (v *Version) getLatestRelease() {
 	//todo clean up
 	for _, release := range v.availableVersions {
-		if release.majorVersion > v.Version.majorVersion {
+		if release.majorVersion > v.Version.majorVersion &&
+			(release.isStable || !needsStable) {
 			v.Version = release
 		}
 		if release.majorVersion >= v.Version.majorVersion &&
-			release.minorVersion > v.Version.minorVersion {
+			release.minorVersion > v.Version.minorVersion &&
+			(release.isStable || !needsStable) {
 			v.Version = release
 		}
 		if release.majorVersion >= v.Version.majorVersion &&
 			release.minorVersion >= v.Version.minorVersion &&
-			release.patchVersion >= v.Version.patchVersion {
+			release.patchVersion >= v.Version.patchVersion &&
+			(release.isStable || !needsStable) {
 			v.Version = release
 		}
 	}

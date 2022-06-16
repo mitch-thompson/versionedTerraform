@@ -12,8 +12,31 @@ import (
 )
 
 type configStruct struct {
+	StableOnly        bool
 	LastUpdate        int64
 	AvailableVersions []string
+}
+
+func ConfigRequiresStable(fileSystem fs.FS, configFile string) (bool, error) {
+	fileHandle, err := fileSystem.Open(configFile)
+	if err != nil {
+		return true, err
+	}
+	defer fileHandle.Close()
+
+	fileScanner := bufio.NewScanner(fileHandle)
+	fileScanner.Split(bufio.ScanLines)
+
+	for fileScanner.Scan() {
+		_line := fileScanner.Text()
+		if strings.Contains(_line, "StableOnly: ") {
+			isStable := strings.SplitAfter(_line, "StableOnly: ")[1]
+			if strings.EqualFold(isStable, "false") {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }
 
 func NeedToUpdateAvailableVersions(fileSystem fs.FS, availableVersions string) (bool, error) {
@@ -120,6 +143,8 @@ func CreateConfig(directory string, configFile string) error {
 	fileHandler, err := os.Create(configFileName)
 	defer fileHandler.Close()
 
+	lineToByte := []byte(fmt.Sprintf("StableOnly: true\n"))
+	fileHandler.Write(lineToByte)
 	err = UpdateConfig(*fileHandler)
 	return err
 }

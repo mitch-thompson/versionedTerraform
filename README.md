@@ -14,7 +14,12 @@ download, and execute that version
 All arguments are passed through to terraform
 ```
 
-## sample usage
+## Sample usage
 `versionedTerraform version` will display the terraform version executed in a folder
 
+## Configuration
+A configuration file is created in `~/.versionedTerraform`<br><br>
+
+`StableOnly` boolean values: <b>true</b>/false<br>
+This value is used to restrict terraform to release versions only defaults to true
 ## Known Issues
