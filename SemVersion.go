@@ -39,12 +39,14 @@ func NewSemVersion(v string) *SemVersion {
 	return s
 }
 
+//setMajorVersion setter for SemVersion.majorVersion
 func (s *SemVersion) setMajorVersion() {
 	version := s.version
 	majorVersionString := strings.Split(version, ".")[0]
 	s.majorVersion, _ = strconv.Atoi(majorVersionString)
 }
 
+//setMinorVersion setter for SemVersion.minorVersion
 func (s *SemVersion) setMinorVersion() {
 	version := s.version
 	minorVersionString := strings.Split(version, ".")[1]
@@ -52,6 +54,7 @@ func (s *SemVersion) setMinorVersion() {
 
 }
 
+//setPatchVersion setter for SemVersion.patchVersion
 func (s *SemVersion) setPatchVersion() {
 	version := s.version
 	var err error
@@ -68,10 +71,13 @@ func (s *SemVersion) setPatchVersion() {
 	}
 }
 
+//ToString returns string of SemVersion
 func (s *SemVersion) ToString() string {
 	return s.version
 }
 
+//VersionInSlice iterates through slices of SemVersion to check if version is in slice
+//Used by main.go to determine if terraform version is currently installed
 func (s *SemVersion) VersionInSlice(sSem []SemVersion) bool {
 	for _, ver := range sSem {
 		if ver.ToString() == s.ToString() {

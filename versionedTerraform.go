@@ -260,7 +260,7 @@ func (v *Version) VersionToString() string {
 	return v.Version.ToString()
 }
 
-//versionCompare returns true if v1 is greater than v2
+//isVersionGreater returns true if v1 is greater than v2
 func isVersionGreater(v1 Version, v2 Version) bool {
 	if v1.Version.majorVersion != v2.Version.majorVersion {
 		if v1.Version.majorVersion > v2.Version.majorVersion {

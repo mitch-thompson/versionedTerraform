@@ -9,6 +9,8 @@ import (
 
 var needsStable bool
 
+//GetVersionFromFile returns Version pointer and error
+//Iterates through files in current directory and sending to parseVersionFromFile
 //todo this should be (Version) GetVers...
 func GetVersionFromFile(fileSystem fs.FS, versionList []string, needsStableValue bool) (*Version, error) {
 	needsStable = needsStableValue
@@ -33,6 +35,9 @@ func GetVersionFromFile(fileSystem fs.FS, versionList []string, needsStableValue
 }
 
 //todo same here
+//parseVersionFromFile returns Version pointer, bool, and error
+//bool returns true if required_version is found
+//if required_version is found sends to NewVersion to determine required version for the application
 func parseVersionFromFile(f fs.FS, fileName string, versionList []string) (*Version, bool, error) {
 	fileHandle, err := f.Open(fileName)
 	regex := regexp.MustCompile("required_version\\s+?=")

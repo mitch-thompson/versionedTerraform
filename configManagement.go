@@ -17,6 +17,7 @@ type configStruct struct {
 	AvailableVersions []string
 }
 
+//ConfigRequiresStable returns bool, error only false if StableOnly: false is set in configuration file
 func ConfigRequiresStable(fileSystem fs.FS, configFile string) (bool, error) {
 	fileHandle, err := fileSystem.Open(configFile)
 	if err != nil {
@@ -39,6 +40,8 @@ func ConfigRequiresStable(fileSystem fs.FS, configFile string) (bool, error) {
 	return true, nil
 }
 
+//NeedToUpdateAvailableVersions returns bool, error checks if last update was older than 1 day ago
+// this prevents us from spamming the list of available terraform versions page
 func NeedToUpdateAvailableVersions(fileSystem fs.FS, availableVersions string) (bool, error) {
 	//todo this is used a lot abstract it?
 	fileHandle, err := fileSystem.Open(availableVersions)
@@ -68,6 +71,8 @@ func NeedToUpdateAvailableVersions(fileSystem fs.FS, availableVersions string) (
 	return false, nil
 }
 
+//LoadVersionsFromConfig returns slice of SemVersions and an error from AvailableVersions in configuration file
+//This is stored from GetVersionList()
 func LoadVersionsFromConfig(fileSystem fs.FS, configFile string) ([]SemVersion, error) {
 	fileHandle, err := fileSystem.Open(configFile)
 	removeOpenBracket := regexp.MustCompile("\\[")
@@ -97,6 +102,7 @@ func LoadVersionsFromConfig(fileSystem fs.FS, configFile string) ([]SemVersion, 
 	return nil, nil
 }
 
+//LoadInstalledVersions returns list of SemVersions and an error from the directory listing of the .versionedTerraform
 func LoadInstalledVersions(fileSystem fs.FS) ([]SemVersion, error) {
 	dir, err := fs.ReadDir(fileSystem, ".")
 	var installedTerraformVersions []SemVersion
@@ -115,6 +121,11 @@ func LoadInstalledVersions(fileSystem fs.FS) ([]SemVersion, error) {
 	return installedTerraformVersions, nil
 }
 
+//UpdateConfig returns an error, and updates configuration file
+// adding:
+// a new date to the last updated field
+// the available versions listed on terraforms website
+// teh status of if the user wants only stable releases
 func UpdateConfig(File os.File) error {
 	configValues := new(configStruct)
 
@@ -133,6 +144,7 @@ func UpdateConfig(File os.File) error {
 	return nil
 }
 
+//CreateConfig returns error, creates a new configuration file
 func CreateConfig(directory string, configFile string) error {
 	configFileName := directory + "/" + configFile
 	err := os.MkdirAll(directory, 0755)
