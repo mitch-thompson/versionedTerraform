@@ -13,15 +13,6 @@ import (
 	"strings"
 )
 
-func (*Version) latestMajorVersion() {
-}
-
-func (*Version) latestMinorVersion() {
-}
-
-func (*Version) latestPatchVersion() {
-}
-
 type Version struct {
 	Version           SemVersion
 	availableVersions []SemVersion
@@ -36,7 +27,6 @@ const (
 
 //getLatestMajorRelease() returns the latest major release from Version
 func (v *Version) getLatestMajorRelease() {
-	//todo clean up
 	for _, release := range v.availableVersions {
 		if release.majorVersion == v.Version.majorVersion &&
 			release.minorVersion == v.Version.minorVersion &&
@@ -118,10 +108,6 @@ func (v *Version) InstallTerraformVersion() error {
 	versionedFileName := homeDir + versionedTerraformFolder + "/" + terraformPrefix + v.Version.ToString()
 	versionedFile, err := os.OpenFile(versionedFileName, os.O_WRONLY, 0755)
 	if os.IsNotExist(err) {
-		//_, err = os.Create(versionedFileName)
-		//if err != nil {
-		//	return err
-		//}
 		versionedFile, err = os.OpenFile(versionedFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 		if err != nil {
 			return err

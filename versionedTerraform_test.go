@@ -138,7 +138,7 @@ func TestIsVersionGreater(t *testing.T) {
 
 func TestGetVersionList(t *testing.T) {
 	//todo write test for this
-	//response, _ := getVersionList()
+	//response, _ := GetVersionList()
 	//for _, Version := range response {
 	//	t.Errorf("%v", Version)
 	//}
