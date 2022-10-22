@@ -1,4 +1,3 @@
-# Template:
 [![<ORG_NAME>](https://circleci.com/gh/mitch-thompson/versionedTerraform.svg?style=svg)](<LINK>)
 
 # Versioned Terraform
