@@ -110,10 +110,9 @@ func main() {
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
-	err = cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
-			exitError.ExitCode()
+			os.Exit(exitError.ExitCode())
 		}
 	}
 }
