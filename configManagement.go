@@ -18,8 +18,8 @@ type configStruct struct {
 }
 
 //ConfigRequiresStable returns bool, error only false if StableOnly: false is set in configuration file
-func ConfigRequiresStable(fileSystem fs.FS, configFile string) (bool, error) {
-	fileHandle, err := fileSystem.Open(configFile)
+func ConfigRequiresStable(File os.File) (bool, error) {
+	fileHandle, err := os.Open(File.Name())
 	if err != nil {
 		return true, err
 	}
@@ -125,19 +125,28 @@ func LoadInstalledVersions(fileSystem fs.FS) ([]SemVersion, error) {
 // adding:
 // a new date to the last updated field
 // the available versions listed on terraforms website
-// teh status of if the user wants only stable releases
-func UpdateConfig(File os.File) error {
+// the status of if the user wants only stable releases
+func UpdateConfig(File os.File, timeNow ...time.Time) error {
 	configValues := new(configStruct)
 
 	configValues.AvailableVersions, _ = GetVersionList()
+	configValues.StableOnly, _ = ConfigRequiresStable(File)
 
-	timeNow := time.Now()
-	configValues.LastUpdate = timeNow.Unix()
+	var t time.Time
+	if len(timeNow) > 0 {
+		t = timeNow[0]
+	} else {
+		t = time.Now()
+	}
+	configValues.LastUpdate = t.Unix()
 
 	File.Truncate(0)
 	File.Seek(0, 0)
 
-	lineToByte := []byte(fmt.Sprintf("LastUpdate: %d\n", configValues.LastUpdate))
+	lineToByte := []byte(fmt.Sprintf("StableOnly: %+v\n", configValues.StableOnly))
+	File.Write(lineToByte)
+
+	lineToByte = []byte(fmt.Sprintf("LastUpdate: %d\n", configValues.LastUpdate))
 	File.Write(lineToByte)
 	lineToByte = []byte(fmt.Sprintf("AvailableVersions: %+v\n", configValues.AvailableVersions))
 	File.Write(lineToByte)

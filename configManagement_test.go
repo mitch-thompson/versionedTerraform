@@ -2,8 +2,11 @@ package versionedTerraform
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -113,4 +116,74 @@ func TestInstalledVersions(t *testing.T) {
 		}
 	})
 
+}
+
+func TestConfigRequiresStable(t *testing.T) {
+	availableVersions, _ := GetVersionList()
+	versions := strings.Join(availableVersions, " ")
+	cases := []struct {
+		name, content, want string
+		timeNow             time.Time
+	}{
+		{"StableOnly True", "StableOnly: true\n" +
+			"LastUpdate: 1674481203\n" +
+			"AvailableVersions: [1.3.7]",
+			"StableOnly: true\n" +
+				"LastUpdate: 1286705410\n" +
+				"AvailableVersions: [" +
+				versions + "]\n",
+			time.Date(2010, 10, 10, 10, 10, 10, 10, time.UTC)},
+		{"StableOnly False", "StableOnly: false\n" +
+			"LastUpdate: 1674481203\n" +
+			"AvailableVersions: [1.3.7]",
+			"StableOnly: false\n" +
+				"LastUpdate: 1286705410\n" +
+				"AvailableVersions: [" +
+				versions + "]\n",
+			time.Date(2010, 10, 10, 10, 10, 10, 10, time.UTC)},
+		{"StableOnly not found", "LastUpdate: 1674481203\n" +
+			"AvailableVersions: [1.3.7]",
+			"StableOnly: true\n" +
+				"LastUpdate: 1286705410\n" +
+				"AvailableVersions: [" +
+				versions + "]\n",
+			time.Date(2010, 10, 10, 10, 10, 10, 10, time.UTC)},
+	}
+
+	for _, c := range cases {
+		t.Run("Test: "+c.name, func(t *testing.T) {
+			t.Parallel()
+
+			tempDir := os.TempDir()
+			tempFile, err := os.Create(tempDir + "/config")
+			defer tempFile.Close()
+
+			if err != nil {
+				t.Errorf("Unable to execute test : %v", err)
+			}
+
+			UpdateConfig(*tempFile, c.timeNow)
+
+			tempFile.Seek(0, 0)
+			data := make([]byte, 1024)
+			var got string
+			for {
+				n, err := tempFile.Read(data)
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					t.Errorf("File reading error : %v", err)
+					return
+				}
+				got += string(data[:n])
+			}
+
+			if !reflect.DeepEqual(got, c.want) {
+				t.Errorf("%v test failed to meet conditions", c.name)
+				fmt.Fprintf(os.Stdout, "%v\n", c.want)
+				fmt.Fprintf(os.Stdout, "%v\n", got)
+			}
+		})
+	}
 }

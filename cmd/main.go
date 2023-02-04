@@ -60,9 +60,9 @@ func main() {
 		fmt.Printf("Unable to update version: %v\n", err)
 	}
 
+	fileHandle, _ := os.OpenFile(configDirString+"/"+configFileLocation, os.O_RDWR, 0666)
+	defer fileHandle.Close()
 	if needsUpdate {
-		fileHandle, _ := os.OpenFile(configDirString+"/"+configFileLocation, os.O_RDWR, 0666)
-		defer fileHandle.Close()
 		versionedTerraform.UpdateConfig(*fileHandle)
 	}
 
@@ -79,7 +79,7 @@ func main() {
 	}
 
 	// Check if stable version of terraform is required
-	needsStable, err = versionedTerraform.ConfigRequiresStable(configDir, configFileLocation)
+	needsStable, err = versionedTerraform.ConfigRequiresStable(*fileHandle)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to open config file, defaulting to stable versions of terraform only")
 	}
