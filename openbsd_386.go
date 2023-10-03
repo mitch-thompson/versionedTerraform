@@ -4,5 +4,7 @@
 package versionedTerraform
 
 const (
-	fileSuffix = "_openbsd_386.zip"
+	fileSuffix      = "_openbsd_386.zip"
+	minVersion      = "0.0.0"
+	alternateSuffix = ""
 )

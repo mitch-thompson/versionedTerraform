@@ -86,3 +86,50 @@ func (s *SemVersion) VersionInSlice(sSem []SemVersion) bool {
 	}
 	return false
 }
+
+func (s *SemVersion) IsEqualTo(s2 SemVersion) bool {
+	if s.majorVersion == s2.majorVersion && s.minorVersion == s2.minorVersion && s.patchVersion == s2.patchVersion {
+		return true
+	}
+	return false
+}
+
+func (s *SemVersion) IsLessThan(s2 SemVersion) bool {
+	if s2.majorVersion > s.majorVersion {
+		return true
+	}
+	if s2.minorVersion > s.minorVersion && s2.majorVersion == s.majorVersion {
+		return true
+	}
+	if s2.patchVersion > s.patchVersion && s2.majorVersion == s.majorVersion && s2.minorVersion == s.minorVersion {
+		return true
+	}
+	return false
+}
+
+func (s *SemVersion) IsGreaterThan(s2 SemVersion) bool {
+	if s2.majorVersion < s.majorVersion {
+		return true
+	}
+	if s2.minorVersion < s.minorVersion && s2.majorVersion == s.majorVersion {
+		return true
+	}
+	if s2.patchVersion < s.patchVersion && s2.majorVersion == s.majorVersion && s2.minorVersion == s.minorVersion {
+		return true
+	}
+	return false
+}
+
+func (s *SemVersion) IsLessOrEqual(s2 SemVersion) bool {
+	if s.IsLessThan(s2) || s.IsEqualTo(s2) {
+		return true
+	}
+	return false
+}
+
+func (s *SemVersion) IsGreaterOrEqual(s2 SemVersion) bool {
+	if s.IsGreaterThan(s2) || s.IsEqualTo(s2) {
+		return true
+	}
+	return false
+}
