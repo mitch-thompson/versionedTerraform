@@ -4,5 +4,7 @@
 package versionedTerraform
 
 const (
-	fileSuffix = "_linux_386.zip"
+	fileSuffix      = "_linux_386.zip"
+	minVersion      = "0.0.0"
+	alternateSuffix = ""
 )

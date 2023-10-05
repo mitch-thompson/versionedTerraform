@@ -62,7 +62,6 @@ func (v *Version) getOneLessRelease() {
 
 //getLatestRelease returns the latest release from Version
 func (v *Version) getLatestRelease() {
-	//todo clean up
 	for _, release := range v.availableVersions {
 		if release.majorVersion > v.Version.majorVersion &&
 			(release.isStable || !needsStable) {
@@ -86,11 +85,16 @@ func (v *Version) getLatestRelease() {
 //configuration directory
 func (v *Version) InstallTerraformVersion() error {
 	homeDir, _ := os.UserHomeDir()
+	suffix := fileSuffix
+	minV := NewSemVersion(minVersion)
+	if v.Version.IsLessThan(*minV) {
+		suffix = alternateSuffix
+	}
 	resp, err := http.Get(hashicorpUrl +
 		v.Version.ToString() +
 		"/" + terraformPrefix +
 		v.Version.ToString() +
-		fileSuffix)
+		suffix)
 	if err != nil {
 		return err
 	}
@@ -118,8 +122,8 @@ func (v *Version) InstallTerraformVersion() error {
 	}
 	defer versionedFile.Close()
 
-	for _, zipFIle := range zipReader.File {
-		zr, err := zipFIle.Open()
+	for _, zipFile := range zipReader.File {
+		zr, err := zipFile.Open()
 		if err != nil {
 			return err
 		}
