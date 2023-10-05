@@ -5,7 +5,7 @@ A wrapper for terraform to detect the expected version of terraform,
 download, and execute that version
 
 ## Requirements
-- go compiler (only tested on go1.17)
+- go
 
 ## Install
 `make build install` for installation to local user<br>
