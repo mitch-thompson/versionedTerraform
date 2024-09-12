@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -25,7 +26,7 @@ const (
 	versionedTerraformFolder = "/.versionedTerraform"
 )
 
-//getLatestMajorRelease() returns the latest major release from Version
+// getLatestMajorRelease() returns the latest major release from Version
 func (v *Version) getLatestMajorRelease() {
 	for _, release := range v.availableVersions {
 		if release.majorVersion == v.Version.majorVersion &&
@@ -37,7 +38,7 @@ func (v *Version) getLatestMajorRelease() {
 	}
 }
 
-//getGreatestRelease() returns less than release
+// getGreatestRelease() returns less than release
 func (v *Version) getOneLessRelease() {
 	var vSlice []Version
 
@@ -60,7 +61,7 @@ func (v *Version) getOneLessRelease() {
 	}
 }
 
-//getLatestRelease returns the latest release from Version
+// getLatestRelease returns the latest release from Version
 func (v *Version) getLatestRelease() {
 	for _, release := range v.availableVersions {
 		if release.majorVersion > v.Version.majorVersion &&
@@ -81,8 +82,8 @@ func (v *Version) getLatestRelease() {
 	}
 }
 
-//InstallTerraformVersion installs the defined terraform Version in the application
-//configuration directory
+// InstallTerraformVersion installs the defined terraform Version in the application
+// configuration directory
 func (v *Version) InstallTerraformVersion() error {
 	homeDir, _ := os.UserHomeDir()
 	suffix := fileSuffix
@@ -90,56 +91,59 @@ func (v *Version) InstallTerraformVersion() error {
 	if v.Version.IsLessThan(*minV) {
 		suffix = alternateSuffix
 	}
-	resp, err := http.Get(hashicorpUrl +
+	url := hashicorpUrl +
 		v.Version.ToString() +
 		"/" + terraformPrefix +
 		v.Version.ToString() +
-		suffix)
+		suffix
+
+	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to download Terraform: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
 	zipReader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create zip reader: %v", err)
 	}
+
 	versionedFileName := homeDir + versionedTerraformFolder + "/" + terraformPrefix + v.Version.ToString()
-	versionedFile, err := os.OpenFile(versionedFileName, os.O_WRONLY, 0755)
-	if os.IsNotExist(err) {
-		versionedFile, err = os.OpenFile(versionedFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-		if err != nil {
-			return err
-		}
-	}
+	versionedFile, err := os.OpenFile(versionedFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create output file: %v", err)
 	}
 	defer versionedFile.Close()
 
 	for _, zipFile := range zipReader.File {
+		if zipFile.Name != "terraform" {
+			continue
+		}
+
 		zr, err := zipFile.Open()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to open zip file: %v", err)
 		}
-		unzippedFileBytes, _ := ioutil.ReadAll(zr)
+		defer zr.Close()
 
-		_, err = versionedFile.Write(unzippedFileBytes)
+		_, err = io.Copy(versionedFile, zr)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to write terraform binary: %v", err)
 		}
-		zr.Close()
+
+		break
 	}
+
 	return nil
 }
 
-//NewVersion creates a new Version using sem versioning for determining the
-//latest release
+// NewVersion creates a new Version using sem versioning for determining the
+// latest release
 func NewVersion(_version string, _vList []string) *Version {
 	v := new(Version)
 	v.Version = *NewSemVersion(_version)
@@ -202,7 +206,7 @@ func NewVersion(_version string, _vList []string) *Version {
 	return v
 }
 
-//GetVersionList returns a list of available versions from hashicorp's release page
+// GetVersionList returns a list of available versions from hashicorp's release page
 func GetVersionList() ([]string, error) {
 	var versionList []string
 	resp, err := http.Get(hashicorpUrl)
@@ -234,7 +238,7 @@ func GetVersionList() ([]string, error) {
 	return versionList, nil
 }
 
-//removeSpacesVersion removes spaces from Version string for parsing
+// removeSpacesVersion removes spaces from Version string for parsing
 func removeSpacesVersion(v string) string {
 	splitV := strings.Split(v, " ")
 	var returnString string
@@ -245,12 +249,12 @@ func removeSpacesVersion(v string) string {
 	return strings.TrimSpace(returnString)
 }
 
-//VersionToString returns string of a Version
+// VersionToString returns string of a Version
 func (v *Version) VersionToString() string {
 	return v.Version.ToString()
 }
 
-//isVersionGreater returns true if v1 is greater than v2
+// isVersionGreater returns true if v1 is greater than v2
 func isVersionGreater(v1 Version, v2 Version) bool {
 	if v1.Version.majorVersion != v2.Version.majorVersion {
 		if v1.Version.majorVersion > v2.Version.majorVersion {
