@@ -44,7 +44,7 @@ jobs:
           command: |
             mkdir -p ./dist
             export BINARY_NAME=versionedTerraform_<< parameters.os >>_<< parameters.arch >>
-            go build -o ./dist/$BINARY_NAME
+            GOOS=<< parameters.os >> GOARCH=<< parameters.arch >> CGO_ENABLED=0 go build -o ./dist/$BINARY_NAME
             cd ./dist && tar -czf ${BINARY_NAME}.tar.gz $BINARY_NAME
             # Calculate SHA256 for Homebrew formula
             if [[ "<< parameters.os >>" == "darwin" || "<< parameters.os >>" == "linux" ]]; then
@@ -138,11 +138,11 @@ jobs:
                   binary_name = Hardware::CPU.arm? ? "versionedTerraform_linux_arm64" : "versionedTerraform_linux_amd64"
                 end
             
-                bin.install binary_name => "versionedTerraform"
+                bin.install binary_name => "versionedterraform"
               end
             
               test do
-                system "#{bin}/versionedTerraform", "--help"
+                system "#{bin}/versionedterraform", "--help"
               end
             end
             EOL
