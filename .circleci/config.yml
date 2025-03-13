@@ -62,11 +62,12 @@ jobs:
       - checkout
       - attach_workspace:
           at: ./dist
-      - github-cli/setup
+      - github-cli/setup:
+          token: GH_TOKEN
       - run:
           name: Create GitHub Release
           command: |
-            VERSION=$(grep -m 1 "const version" version.md | cut -d '"' -f 2)
+            VERSION=$(cat version.md | cut -d '"' -f 2)
             if [ -z "$VERSION" ]; then
               VERSION="v0.1.0-$(date +%Y%m%d%H%M%S)"
             fi
