@@ -15,7 +15,7 @@ jobs:
           name: Install gotestsum
           command: go install gotest.tools/gotestsum@latest
       - run:
-          name: Run tests
+          name: Run tests1
           command: |
             mkdir -p /tmp/test-results
             gotestsum --junitfile /tmp/test-results/unit-tests.xml -- ./... -v
@@ -82,6 +82,78 @@ jobs:
               $(cat ./dist/*.sha256)
               "
 
+  update-homebrew-formula:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./dist
+      - github-cli/setup:
+          token: GH_TOKEN
+      - run:
+          name: Update Homebrew Formula
+          command: |
+            VERSION=$(cat version.md | cut -d '"' -f 2)
+            git clone https://github.com/mitch-thompson/homebrew-terraform.git
+            cd homebrew-terraform
+            
+            DARWIN_ARM64_SHA=$(cat ../dist/versionedTerraform_darwin_arm64.tar.gz.sha256 | cut -d' ' -f1)
+            DARWIN_AMD64_SHA=$(cat ../dist/versionedTerraform_darwin_amd64.tar.gz.sha256 | cut -d' ' -f1)
+            LINUX_ARM64_SHA=$(cat ../dist/versionedTerraform_linux_arm64.tar.gz.sha256 | cut -d' ' -f1)
+            LINUX_AMD64_SHA=$(cat ../dist/versionedTerraform_linux_amd64.tar.gz.sha256 | cut -d' ' -f1)
+
+            cat > versioned-terraform.rb <<EOL
+              class VersionedTerraform < Formula
+              desc "Wrapper for terraform to detect, download, and execute the right version"
+              homepage "https://github.com/mitch-thompson/versionedTerraform"
+              version "${VERSION}"
+            
+              on_macos do
+                on_arm do
+                  url "https://github.com/mitch-thompson/versionedTerraform/releases/download/${VERSION}/versionedTerraform_darwin_arm64.tar.gz"
+                  sha256 "${DARWIN_ARM64_SHA}"
+                end
+                on_intel do
+                  url "https://github.com/mitch-thompson/versionedTerraform/releases/download/${VERSION}/versionedTerraform_darwin_amd64.tar.gz"
+                  sha256 "${DARWIN_AMD64_SHA}"
+                end
+              end
+            
+              on_linux do
+                on_arm do
+                  url "https://github.com/mitch-thompson/versionedTerraform/releases/download/${VERSION}/versionedTerraform_linux_arm64.tar.gz"
+                  sha256 "${LINUX_ARM64_SHA}"
+                end
+                on_intel do
+                  url "https://github.com/mitch-thompson/versionedTerraform/releases/download/${VERSION}/versionedTerraform_linux_amd64.tar.gz"
+                  sha256 "${LINUX_AMD64_SHA}"
+                end
+              end
+            
+              def install
+                if OS.mac?
+                  binary_name = Hardware::CPU.arm? ? "versionedTerraform_darwin_arm64" : "versionedTerraform_darwin_amd64"
+                else
+                  binary_name = Hardware::CPU.arm? ? "versionedTerraform_linux_arm64" : "versionedTerraform_linux_amd64"
+                end
+            
+                bin.install binary_name => "versionedTerraform"
+              end
+            
+              test do
+                system "#{bin}/versionedTerraform", "--help"
+              end
+            end
+            EOL
+            
+            git config user.email "ci-bot@example.com"
+            git config user.name "CircleCI Bot"
+            git add versioned-terraform.rb
+            git commit -m "Update formula to version ${VERSION}"
+            git push https://${GH_TOKEN}@github.com/mitch-thompson/homebrew-terraform.git master
+
+
 workflows:
   version: 2
   test-build-and-release:
@@ -126,6 +198,13 @@ workflows:
             - build-linux-amd64
             - build-linux-arm64
             - build-windows-amd64
+          filters:
+            branches:
+              only: master
+
+      - update-homebrew-formula:
+          requires:
+            - publish-github-release
           filters:
             branches:
               only: master
