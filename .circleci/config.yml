@@ -103,7 +103,7 @@ jobs:
             LINUX_ARM64_SHA=$(cat ../dist/versionedTerraform_linux_arm64.tar.gz.sha256 | cut -d' ' -f1)
             LINUX_AMD64_SHA=$(cat ../dist/versionedTerraform_linux_amd64.tar.gz.sha256 | cut -d' ' -f1)
 
-            cat > versioned-terraform.rb <<EOL
+            cat > versioned-terraform.rb \<<EOL
               class VersionedTerraform < Formula
               desc "Wrapper for terraform to detect, download, and execute the right version"
               homepage "https://github.com/mitch-thompson/versionedTerraform"
