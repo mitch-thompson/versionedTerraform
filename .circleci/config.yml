@@ -1,49 +1,133 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+orbs:
+  go: circleci/go@1.7
+  github-cli: circleci/github-cli@2.0
+
 jobs:
-  build:
-    resource_class: small
-    working_directory: ~/repo
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  test:
     docker:
-      - image: cimg/go:1.17
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+      - image: cimg/go:1.19
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - go-mod-v4-{{ checksum "go.sum" }}
+      - go/mod-download-cached
       - run:
-          name: Install Dependencies
-          command: go mod download
-      - save_cache:
-          key: go-mod-v4-{{ checksum "go.sum" }}
-          paths:
-            - "/go/pkg/mod"
+          name: Install gotestsum
+          command: go install gotest.tools/gotestsum@latest
       - run:
           name: Run tests
           command: |
-            mkdir -p /tmp/test-reports
-            mkdir -p /tmp/artifacts
-            go test -coverprofile=c.out
-            go tool cover -html=c.out -o coverage.html
-            mv coverage.html /tmp/artifacts
-            gotestsum --junitfile /tmp/test-reports/unit-tests.xml
+            mkdir -p /tmp/test-results
+            gotestsum --junitfile /tmp/test-results/unit-tests.xml -- ./... -v
       - store_test_results:
-          path: /tmp/test-reports
+          path: /tmp/test-results
       - store_artifacts:
-          path: /tmp/artifacts
+          path: /tmp/test-results
+          destination: test-results
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+  build:
+    docker:
+      - image: cimg/go:1.19
+    parameters:
+      os:
+        type: string
+      arch:
+        type: string
+    environment:
+      GOOS: << parameters.os >>
+      GOARCH: << parameters.arch >>
+    steps:
+      - checkout
+      - go/mod-download-cached
+      - run:
+          name: Build binary
+          command: |
+            mkdir -p ./dist
+            export BINARY_NAME=versionedTerraform_<< parameters.os >>_<< parameters.arch >>
+            go build -o ./dist/$BINARY_NAME
+            cd ./dist && tar -czf ${BINARY_NAME}.tar.gz $BINARY_NAME
+            # Calculate SHA256 for Homebrew formula
+            if [[ "<< parameters.os >>" == "darwin" || "<< parameters.os >>" == "linux" ]]; then
+              shasum -a 256 ${BINARY_NAME}.tar.gz > ${BINARY_NAME}.tar.gz.sha256
+            fi
+      - persist_to_workspace:
+          root: ./dist
+          paths:
+            - "*"
+
+  publish-github-release:
+    docker:
+      - image: cimg/go:1.19
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./dist
+      - github-cli/setup
+      - run:
+          name: Create GitHub Release
+          command: |
+            VERSION=$(grep -m 1 "const version" version.go | cut -d '"' -f 2)
+            if [ -z "$VERSION" ]; then
+              VERSION="v0.1.0-$(date +%Y%m%d%H%M%S)"
+            fi
+            
+            # Create a GitHub release
+            gh release create $VERSION ./dist/*.tar.gz \
+              --repo $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME \
+              --title "Release $VERSION" \
+              --notes "Automated release from CircleCI build $CIRCLE_BUILD_NUM
+            
+              SHA256 hashes:
+              $(cat ./dist/*.sha256)
+              "
+
 workflows:
-  build: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
+  version: 2
+  test-build-and-release:
     jobs:
-      - build
+      # Run tests first
+      - test
+
+      # Build for different OS/architecture combinations
+      - build:
+          name: build-darwin-amd64
+          os: darwin
+          arch: amd64
+          requires:
+            - test
+      - build:
+          name: build-darwin-arm64
+          os: darwin
+          arch: arm64
+          requires:
+            - test
+      - build:
+          name: build-linux-amd64
+          os: linux
+          arch: amd64
+          requires:
+            - test
+      - build:
+          name: build-linux-arm64
+          os: linux
+          arch: arm64
+          requires:
+            - test
+      - build:
+          name: build-windows-amd64
+          os: windows
+          arch: amd64
+          requires:
+            - test
+
+      # Publish all builds to GitHub Releases
+      - publish-github-release:
+          requires:
+            - build-darwin-amd64
+            - build-darwin-arm64
+            - build-linux-amd64
+            - build-linux-arm64
+            - build-windows-amd64
+          filters:
+            branches:
+              only: main

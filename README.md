@@ -1,4 +1,4 @@
-[![<ORG_NAME>](https://circleci.com/gh/mitch-thompson/versionedTerraform.svg?style=svg)](<LINK>)
+[![CircleCI](https://circleci.com/gh/mitch-thompson/versionedTerraform.svg?style=svg)](https://circleci.com/gh/mitch-thompson/versionedTerraform)
 
 # Versioned Terraform
 A wrapper for terraform to detect the expected version of terraform, 
