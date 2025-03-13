@@ -105,7 +105,7 @@ jobs:
               VERSION="v0.1.0-$(date +%Y%m%d%H%M%S)"
             else
               # Add v prefix if not present
-              [[ "$VERSION" != v* ]] && VERSION="v$VERSION"
+              [[ "$VERSION" != v* ]] && VERSION="$VERSION"
             fi
             
             # Create a GitHub release
@@ -132,7 +132,7 @@ jobs:
           command: |
             VERSION=$(cat version.md | tr -d '"')
             # Add v prefix if not present
-            [[ "$VERSION" != v* ]] && VERSION="v$VERSION"
+            [[ "$VERSION" != v* ]] && VERSION="$VERSION"
             
             git clone https://github.com/mitch-thompson/homebrew-terraform.git
             cd homebrew-terraform
@@ -142,7 +142,7 @@ jobs:
             LINUX_ARM64_SHA=$(cat ../dist/versionedTerraform_linux_arm64.tar.gz.sha256 2>/dev/null | awk '{print $1}' || echo "")
             LINUX_AMD64_SHA=$(cat ../dist/versionedTerraform_linux_amd64.tar.gz.sha256 2>/dev/null | awk '{print $1}' || echo "")
 
-            cat > versioned-terraform.rb <<EOL
+            cat > versioned-terraform.rb \<<EOL
             class VersionedTerraform < Formula
               desc "Wrapper for terraform to detect, download, and execute the right version"
               homepage "https://github.com/mitch-thompson/versionedTerraform"
