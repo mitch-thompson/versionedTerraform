@@ -15,7 +15,7 @@ jobs:
           name: Install gotestsum
           command: go install gotest.tools/gotestsum@latest
       - run:
-          name: Run tests1
+          name: Run tests
           command: |
             mkdir -p /tmp/test-results
             gotestsum --junitfile /tmp/test-results/unit-tests.xml -- ./... -v
@@ -33,23 +33,56 @@ jobs:
         type: string
       arch:
         type: string
-    environment:
-      GOOS: << parameters.os >>
-      GOARCH: << parameters.arch >>
     steps:
       - checkout
       - go/mod-download-cached
+
       - run:
           name: Build binary
           command: |
             mkdir -p ./dist
             export BINARY_NAME=versionedTerraform_<< parameters.os >>_<< parameters.arch >>
-            GOOS=<< parameters.os >> GOARCH=<< parameters.arch >> CGO_ENABLED=0 go build -o ./dist/$BINARY_NAME
-            cd ./dist && tar -czf ${BINARY_NAME}.tar.gz $BINARY_NAME
-            # Calculate SHA256 for Homebrew formula
+            
+            # Set CGO_ENABLED=0 to produce statically linked binaries
+            export CGO_ENABLED=0
+            export GOOS=<< parameters.os >>
+            export GOARCH=<< parameters.arch >>
+            
+            # Simple build command with essential flags only
+            go build -o ./dist/$BINARY_NAME
+            
+            if [[ "<< parameters.os >>" == "windows" ]]; then
+              mv ./dist/$BINARY_NAME ./dist/${BINARY_NAME}.exe
+              BINARY_NAME=${BINARY_NAME}.exe
+            fi
+            
+            cd ./dist
+            tar -czf ${BINARY_NAME}.tar.gz $BINARY_NAME
+            
             if [[ "<< parameters.os >>" == "darwin" || "<< parameters.os >>" == "linux" ]]; then
               shasum -a 256 ${BINARY_NAME}.tar.gz > ${BINARY_NAME}.tar.gz.sha256
             fi
+
+      - run:
+          name: Verify binary
+          command: |
+            if [[ "<< parameters.os >>" == "linux" && "<< parameters.arch >>" == "amd64" ]]; then
+              echo "Verifying Linux/amd64 binary..."
+              chmod +x ./dist/versionedTerraform_linux_amd64
+            
+              ./dist/versionedTerraform_linux_amd64 --help
+            
+              if [ $? -ne 0 ]; then
+                echo "Binary verification failed! Aborting build."
+                exit 1
+              else
+                echo "Binary verification successful."
+              fi
+            fi
+            
+            # List all builds to confirm they exist
+            ls -la ./dist/
+
       - persist_to_workspace:
           root: ./dist
           paths:
@@ -67,9 +100,12 @@ jobs:
       - run:
           name: Create GitHub Release
           command: |
-            VERSION=$(cat version.md | cut -d '"' -f 2)
+            VERSION=$(cat version.md | tr -d '"')
             if [ -z "$VERSION" ]; then
               VERSION="v0.1.0-$(date +%Y%m%d%H%M%S)"
+            else
+              # Add v prefix if not present
+              [[ "$VERSION" != v* ]] && VERSION="v$VERSION"
             fi
             
             # Create a GitHub release
@@ -79,7 +115,7 @@ jobs:
               --notes "Automated release from CircleCI build $CIRCLE_BUILD_NUM
             
               SHA256 hashes:
-              $(cat ./dist/*.sha256)
+              $(cat ./dist/*.sha256 2>/dev/null || echo 'No SHA256 files found')
               "
 
   update-homebrew-formula:
@@ -94,20 +130,23 @@ jobs:
       - run:
           name: Update Homebrew Formula
           command: |
-            VERSION=$(cat version.md | cut -d '"' -f 2)
+            VERSION=$(cat version.md | tr -d '"')
+            # Add v prefix if not present
+            [[ "$VERSION" != v* ]] && VERSION="v$VERSION"
+            
             git clone https://github.com/mitch-thompson/homebrew-terraform.git
             cd homebrew-terraform
             
-            DARWIN_ARM64_SHA=$(cat ../dist/versionedTerraform_darwin_arm64.tar.gz.sha256 | cut -d' ' -f1)
-            DARWIN_AMD64_SHA=$(cat ../dist/versionedTerraform_darwin_amd64.tar.gz.sha256 | cut -d' ' -f1)
-            LINUX_ARM64_SHA=$(cat ../dist/versionedTerraform_linux_arm64.tar.gz.sha256 | cut -d' ' -f1)
-            LINUX_AMD64_SHA=$(cat ../dist/versionedTerraform_linux_amd64.tar.gz.sha256 | cut -d' ' -f1)
+            DARWIN_ARM64_SHA=$(cat ../dist/versionedTerraform_darwin_arm64.tar.gz.sha256 2>/dev/null | awk '{print $1}' || echo "")
+            DARWIN_AMD64_SHA=$(cat ../dist/versionedTerraform_darwin_amd64.tar.gz.sha256 2>/dev/null | awk '{print $1}' || echo "")
+            LINUX_ARM64_SHA=$(cat ../dist/versionedTerraform_linux_arm64.tar.gz.sha256 2>/dev/null | awk '{print $1}' || echo "")
+            LINUX_AMD64_SHA=$(cat ../dist/versionedTerraform_linux_amd64.tar.gz.sha256 2>/dev/null | awk '{print $1}' || echo "")
 
-            cat > versioned-terraform.rb \<<EOL
-              class VersionedTerraform < Formula
+            cat > versioned-terraform.rb <<EOL
+            class VersionedTerraform < Formula
               desc "Wrapper for terraform to detect, download, and execute the right version"
               homepage "https://github.com/mitch-thompson/versionedTerraform"
-              version "${VERSION}"
+              version "${VERSION#v}"
             
               on_macos do
                 on_arm do
@@ -152,7 +191,6 @@ jobs:
             git add versioned-terraform.rb
             git commit -m "Update formula to version ${VERSION}"
             git push https://${GH_TOKEN}@github.com/mitch-thompson/homebrew-terraform.git master
-
 
 workflows:
   version: 2
