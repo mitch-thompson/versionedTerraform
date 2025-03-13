@@ -127,4 +127,4 @@ workflows:
             - build-windows-amd64
           filters:
             branches:
-              only: main
+              only: master
