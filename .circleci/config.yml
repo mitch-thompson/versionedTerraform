@@ -43,13 +43,11 @@ jobs:
             mkdir -p ./dist
             export BINARY_NAME=versionedTerraform_<< parameters.os >>_<< parameters.arch >>
             
-            # Set CGO_ENABLED=0 to produce statically linked binaries
             export CGO_ENABLED=0
             export GOOS=<< parameters.os >>
             export GOARCH=<< parameters.arch >>
             
-            # Simple build command with essential flags only
-            go build -o ./dist/$BINARY_NAME
+            go build -v -ldflags="-s -w"  -o ./dist/$BINARY_NAME
             
             if [[ "<< parameters.os >>" == "windows" ]]; then
               mv ./dist/$BINARY_NAME ./dist/${BINARY_NAME}.exe
@@ -79,8 +77,6 @@ jobs:
                 echo "Binary verification successful."
               fi
             fi
-            
-            # List all builds to confirm they exist
             ls -la ./dist/
 
       - persist_to_workspace:
