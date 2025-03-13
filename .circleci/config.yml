@@ -66,7 +66,7 @@ jobs:
       - run:
           name: Create GitHub Release
           command: |
-            VERSION=$(grep -m 1 "const version" version.go | cut -d '"' -f 2)
+            VERSION=$(grep -m 1 "const version" version.md | cut -d '"' -f 2)
             if [ -z "$VERSION" ]; then
               VERSION="v0.1.0-$(date +%Y%m%d%H%M%S)"
             fi
@@ -85,10 +85,8 @@ workflows:
   version: 2
   test-build-and-release:
     jobs:
-      # Run tests first
       - test
 
-      # Build for different OS/architecture combinations
       - build:
           name: build-darwin-amd64
           os: darwin
@@ -120,7 +118,6 @@ workflows:
           requires:
             - test
 
-      # Publish all builds to GitHub Releases
       - publish-github-release:
           requires:
             - build-darwin-amd64
