@@ -47,7 +47,7 @@ jobs:
             export GOOS=<< parameters.os >>
             export GOARCH=<< parameters.arch >>
             
-            go build -v -ldflags="-s -w"  -o ./dist/$BINARY_NAME
+            go build -v -o ./dist/$BINARY_NAME ./cmd
             
             if [[ "<< parameters.os >>" == "windows" ]]; then
               mv ./dist/$BINARY_NAME ./dist/${BINARY_NAME}.exe
